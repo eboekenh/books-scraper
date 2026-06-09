@@ -1,217 +1,132 @@
-{
-  "nbformat": 4,
-  "nbformat_minor": 0,
-  "metadata": {
-    "colab": {
-      "provenance": [],
-      "authorship_tag": "ABX9TyOkRZiByWi0EvWI+i1g5PV6",
-      "include_colab_link": true
-    },
-    "kernelspec": {
-      "name": "python3",
-      "display_name": "Python 3"
-    },
-    "language_info": {
-      "name": "python"
-    }
-  },
-  "cells": [
-    {
-      "cell_type": "markdown",
-      "metadata": {
-        "id": "view-in-github",
-        "colab_type": "text"
-      },
-      "source": [
-        "<a href=\"https://colab.research.google.com/github/eboekenh/books-scraper/blob/main/scraper_py.ipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
-      ]
-    },
-    {
-      "cell_type": "code",
-      "execution_count": 3,
-      "metadata": {
-        "colab": {
-          "base_uri": "https://localhost:8080/"
-        },
-        "id": "VMMsv4x0qAVG",
-        "outputId": "9e23c8f6-8e5b-421a-a57c-909e555d9618"
-      },
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "=================================================================\n",
-            "  📚 books.toscrape.com Scraper\n",
-            "=================================================================\n",
-            "✅ Status: 200 | Size: 51,294 chars\n",
-            "📦 Found 20 book cards\n",
-            "\n",
-            "  1. A Light in the Attic                      £ 51.77  ★★★☆☆  In stock\n",
-            "  2. Tipping the Velvet                        £ 53.74  ★☆☆☆☆  In stock\n",
-            "  3. Soumission                                £ 50.10  ★☆☆☆☆  In stock\n",
-            "  4. Sharp Objects                             £ 47.82  ★★★★☆  In stock\n",
-            "  5. Sapiens: A Brief History of Humankind     £ 54.23  ★★★★★  In stock\n",
-            "  6. The Requiem Red                           £ 22.65  ★☆☆☆☆  In stock\n",
-            "  7. The Dirty Little Secrets of Getting Your  £ 33.34  ★★★★☆  In stock\n",
-            "  8. The Coming Woman: A Novel Based on the L  £ 17.93  ★★★☆☆  In stock\n",
-            "  9. The Boys in the Boat: Nine Americans and  £ 22.60  ★★★★☆  In stock\n",
-            " 10. The Black Maria                           £ 52.15  ★☆☆☆☆  In stock\n",
-            " 11. Starving Hearts (Triangular Trade Trilog  £ 13.99  ★★☆☆☆  In stock\n",
-            " 12. Shakespeare's Sonnets                     £ 20.66  ★★★★☆  In stock\n",
-            " 13. Set Me Free                               £ 17.46  ★★★★★  In stock\n",
-            " 14. Scott Pilgrim's Precious Little Life (Sc  £ 52.29  ★★★★★  In stock\n",
-            " 15. Rip it Up and Start Again                 £ 35.02  ★★★★★  In stock\n",
-            " 16. Our Band Could Be Your Life: Scenes from  £ 57.25  ★★★☆☆  In stock\n",
-            " 17. Olio                                      £ 23.88  ★☆☆☆☆  In stock\n",
-            " 18. Mesaerion: The Best Science Fiction Stor  £ 37.59  ★☆☆☆☆  In stock\n",
-            " 19. Libertarianism for Beginners              £ 51.33  ★★☆☆☆  In stock\n",
-            " 20. It's Only the Himalayas                   £ 45.17  ★★☆☆☆  In stock\n",
-            "\n",
-            "💾 Saved 20 books to 'books.csv'\n",
-            "\n",
-            "📊 Summary\n",
-            "   Total books : 20\n",
-            "   Avg price   : £38.05\n",
-            "   Avg rating  : 2.9 / 5\n"
-          ]
-        }
-      ],
-      "source": [
-        "#!/usr/bin/env python3\n",
-        "\"\"\"\n",
-        "Scrape every book on books.toscrape.com homepage and save to CSV.\n",
-        "\"\"\"\n",
-        "\n",
-        "import csv\n",
-        "import requests\n",
-        "from bs4 import BeautifulSoup\n",
-        "from urllib.parse import urljoin\n",
-        "\n",
-        "# ---------------------------------------------------------------------------\n",
-        "# CONFIGURATION\n",
-        "\n",
-        "BASE_URL    = \"https://books.toscrape.com/\"\n",
-        "OUTPUT_FILE = \"books.csv\"\n",
-        "\n",
-        "RATING_MAP = {\n",
-        "    \"Zero\":  0,\n",
-        "    \"One\":   1,\n",
-        "    \"Two\":   2,\n",
-        "    \"Three\": 3,\n",
-        "    \"Four\":  4,\n",
-        "    \"Five\":  5,\n",
-        "}\n",
-        "\n",
-        "HEADERS = {\n",
-        "    \"User-Agent\": (\n",
-        "        \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) \"\n",
-        "        \"AppleWebKit/537.36 (KHTML, like Gecko) \"\n",
-        "        \"Chrome/124.0.0.0 Safari/537.36\"\n",
-        "    )\n",
-        "}\n",
-        "\n",
-        "# ---------------------------------------------------------------------------\n",
-        "# FETCHING\n",
-        "\n",
-        "def fetch_page(url):\n",
-        "    try:\n",
-        "        response = requests.get(url, headers=HEADERS, timeout=10)\n",
-        "        response.raise_for_status()\n",
-        "        print(f\"✅ Status: {response.status_code} | Size: {len(response.text):,} chars\")\n",
-        "        return response.text\n",
-        "    except requests.RequestException as e:\n",
-        "        print(f\"❌ Error fetching page: {e}\")\n",
-        "        return None\n",
-        "\n",
-        "# ---------------------------------------------------------------------------\n",
-        "# EXTRACTION\n",
-        "\n",
-        "def extract_title(card):\n",
-        "    return card.find(\"h3\").find(\"a\")[\"title\"]\n",
-        "\n",
-        "def extract_price(card):\n",
-        "    raw = card.find(\"p\", class_=\"price_color\").get_text(strip=True)\n",
-        "    # Fix: Also replace 'Â' which can appear due to encoding issues with the pound sign\n",
-        "    return float(raw.replace(\"\\u00a3\", \"\").replace(\"£\", \"\").replace(\"Â\", \"\"))\n",
-        "\n",
-        "def extract_rating(card):\n",
-        "    classes = card.find(\"p\", class_=\"star-rating\")[\"class\"]\n",
-        "    word = classes[1]  # e.g. [\"star-rating\", \"Three\"] → \"Three\"\n",
-        "    return RATING_MAP.get(word, 0)\n",
-        "\n",
-        "def extract_availability(card):\n",
-        "    return card.find(\"p\", class_=\"instock availability\").get_text(strip=True)\n",
-        "\n",
-        "def extract_url(card, base_url):\n",
-        "    relative = card.find(\"h3\").find(\"a\")[\"href\"]\n",
-        "    return urljoin(base_url, relative)\n",
-        "\n",
-        "def extract_book(card, base_url):\n",
-        "    return {\n",
-        "        \"title\":        extract_title(card),\n",
-        "        \"price\":        extract_price(card),\n",
-        "        \"rating\":       extract_rating(card),\n",
-        "        \"availability\": extract_availability(card),\n",
-        "        \"url\":          extract_url(card, base_url),\n",
-        "    }\n",
-        "\n",
-        "# ---------------------------------------------------------------------------\n",
-        "# DISPLAY\n",
-        "\n",
-        "def stars(rating):\n",
-        "    return \"\\u2605\" * rating + \"\\u2606\" * (5 - rating)\n",
-        "\n",
-        "def print_book_row(index, book):\n",
-        "    title = book[\"title\"][:40].ljust(40)\n",
-        "    print(f\"{index:>3}. {title}  £{book['price']:>6.2f}  {stars(book['rating'])}  {book['availability']}\")\n",
-        "\n",
-        "# ---------------------------------------------------------------------------\n",
-        "# SAVING\n",
-        "\n",
-        "def save_to_csv(books, path):\n",
-        "    with open(path, \"w\", newline=\"\", encoding=\"utf-8\") as f:\n",
-        "        fieldnames = [\"title\", \"price\", \"rating\", \"availability\", \"url\"]\n",
-        "        writer = csv.DictWriter(f, fieldnames=fieldnames)\n",
-        "        writer.writeheader()\n",
-        "        writer.writerows(books)\n",
-        "    print(f\"\\n💾 Saved {len(books)} books to '{path}'\")\n",
-        "\n",
-        "# ---------------------------------------------------------------------------\n",
-        "# MAIN\n",
-        "\n",
-        "def main():\n",
-        "    print(\"=\" * 65)\n",
-        "    print(\"  📚 books.toscrape.com Scraper\")\n",
-        "    print(\"=\" * 65)\n",
-        "\n",
-        "    html = fetch_page(BASE_URL)\n",
-        "    if not html:\n",
-        "        return\n",
-        "\n",
-        "    soup  = BeautifulSoup(html, \"html.parser\")\n",
-        "    cards = soup.find_all(\"article\", class_=\"product_pod\")\n",
-        "    print(f\"📦 Found {len(cards)} book cards\\n\")\n",
-        "\n",
-        "    books = []\n",
-        "    for i, card in enumerate(cards, start=1):\n",
-        "        book = extract_book(card, BASE_URL)\n",
-        "        print_book_row(i, book)\n",
-        "        books.append(book)\n",
-        "\n",
-        "    save_to_csv(books, OUTPUT_FILE)\n",
-        "\n",
-        "    # Summary\n",
-        "    avg_price  = sum(b[\"price\"]  for b in books) / len(books)\n",
-        "    avg_rating = sum(b[\"rating\"] for b in books) / len(books)\n",
-        "    print(f\"\\n📊 Summary\")\n",
-        "    print(f\"   Total books : {len(books)}\")\n",
-        "    print(f\"   Avg price   : £{avg_price:.2f}\")\n",
-        "    print(f\"   Avg rating  : {avg_rating:.1f} / 5\")\n",
-        "\n",
-        "if __name__ == \"__main__\":\n",
-        "    main()"
-      ]
-    }
-  ]
+#!/usr/bin/env python3
+"""
+Scrape every book on books.toscrape.com homepage and save to CSV.
+"""
+
+import csv
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+# ---------------------------------------------------------------------------
+# CONFIGURATION
+
+BASE_URL    = "https://books.toscrape.com/"
+OUTPUT_FILE = "books.csv"
+
+RATING_MAP = {
+    "Zero":  0,
+    "One":   1,
+    "Two":   2,
+    "Three": 3,
+    "Four":  4,
+    "Five":  5,
 }
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    )
+}
+
+# ---------------------------------------------------------------------------
+# FETCHING
+
+def fetch_page(url):
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=10)
+        response.raise_for_status()
+        print(f"✅ Status: {response.status_code} | Size: {len(response.text):,} chars")
+        return response.text
+    except requests.RequestException as e:
+        print(f"❌ Error fetching page: {e}")
+        return None
+
+# ---------------------------------------------------------------------------
+# EXTRACTION
+
+def extract_title(card):
+    return card.find("h3").find("a")["title"]
+
+def extract_price(card):
+    raw = card.find("p", class_="price_color").get_text(strip=True)
+    return float(raw.replace("\u00a3", "").replace("£", ""))
+
+def extract_rating(card):
+    classes = card.find("p", class_="star-rating")["class"]
+    word = classes[1]  # e.g. ["star-rating", "Three"] → "Three"
+    return RATING_MAP.get(word, 0)
+
+def extract_availability(card):
+    return card.find("p", class_="instock availability").get_text(strip=True)
+
+def extract_url(card, base_url):
+    relative = card.find("h3").find("a")["href"]
+    return urljoin(base_url, relative)
+
+def extract_book(card, base_url):
+    return {
+        "title":        extract_title(card),
+        "price":        extract_price(card),
+        "rating":       extract_rating(card),
+        "availability": extract_availability(card),
+        "url":          extract_url(card, base_url),
+    }
+
+# ---------------------------------------------------------------------------
+# DISPLAY
+
+def stars(rating):
+    return "\u2605" * rating + "\u2606" * (5 - rating)
+
+def print_book_row(index, book):
+    title = book["title"][:40].ljust(40)
+    print(f"{index:>3}. {title}  £{book['price']:>6.2f}  {stars(book['rating'])}  {book['availability']}")
+
+# ---------------------------------------------------------------------------
+# SAVING
+
+def save_to_csv(books, path):
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        fieldnames = ["title", "price", "rating", "availability", "url"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(books)
+    print(f"\n💾 Saved {len(books)} books to '{path}'")
+
+# ---------------------------------------------------------------------------
+# MAIN
+
+def main():
+    print("=" * 65)
+    print("  📚 books.toscrape.com Scraper")
+    print("=" * 65)
+
+    html = fetch_page(BASE_URL)
+    if not html:
+        return
+
+    soup  = BeautifulSoup(html, "html.parser")
+    cards = soup.find_all("article", class_="product_pod")
+    print(f"📦 Found {len(cards)} book cards\n")
+
+    books = []
+    for i, card in enumerate(cards, start=1):
+        book = extract_book(card, BASE_URL)
+        print_book_row(i, book)
+        books.append(book)
+
+    save_to_csv(books, OUTPUT_FILE)
+
+    # Summary
+    avg_price  = sum(b["price"]  for b in books) / len(books)
+    avg_rating = sum(b["rating"] for b in books) / len(books)
+    print(f"\n📊 Summary")
+    print(f"   Total books : {len(books)}")
+    print(f"   Avg price   : £{avg_price:.2f}")
+    print(f"   Avg rating  : {avg_rating:.1f} / 5")
+
+if __name__ == "__main__":
+    main()
