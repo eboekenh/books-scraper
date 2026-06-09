@@ -52,7 +52,7 @@ def extract_title(card):
 
 def extract_price(card):
     raw = card.find("p", class_="price_color").get_text(strip=True)
-    return float(raw.replace("\u00a3", "").replace("£", ""))
+    return float(raw.replace("\u00a3", "").replace("£", "").replace("Â", ""))
 
 def extract_rating(card):
     classes = card.find("p", class_="star-rating")["class"]
